@@ -74,7 +74,6 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 	: QFrame(parent)
 	, m_ui(new Ui::SymLinkFrame)
 	, m_qtdir(QString{ qgetenv("QTDIR") }.replace('\\', '/'))
-	, m_extsdk(QString{ qgetenv("ISS_LIB_HOME") }.replace('\\', '/'))
 {
 	m_ui->setupUi(this);
 
@@ -88,12 +87,11 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 			param.insert("qtdir", m_mountPoint + "/qtbase");
 		m_qtdir = param.value("qtdir").toString();
 	}
-	if (m_extsdk.isEmpty())
-	{
-		if (!param.contains("extsdk"))
-			param.insert("extsdk", "d:/projects/extsdk");
-		m_qtdir = param.value("extsdk").toString();
-	}
+
+	if (!param.contains("extsdk"))
+		param.insert("extsdk", "d:/projects/extsdk/trunk/qt");
+	m_extsdk = param.value("extsdk").toString();
+
 	QString errorText;
 	if (!QFileInfo(m_mountPoint).exists())
 	{
@@ -115,7 +113,8 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 	}
 
 	if (!QFileInfo(m_extsdk).exists())
-		errorText += (QString{ errorText.isEmpty() ? "" : "\n" } + "ISS_LIB_HOME not exists");
+		errorText += (QString{ errorText.isEmpty() ? "" : "\n" } + "no qt installation directory " + m_extsdk);
+
 	if (!errorText.isEmpty())
 	{
 		m_ui->qtPath->setText(errorText);
@@ -169,12 +168,12 @@ void SymlinkinQtWidget::initDirs()
 
 QString SymlinkinQtWidget::extsdkQtPath() const
 {
-	return QString{ "%1/qt/" }.arg(m_extsdk);
+	return m_extsdk;
 }
 
 void SymlinkinQtWidget::changeVersion(int idx)
 {
-	QString nupath = QString{ "%1/qt/%2" }
+	QString nupath = QString{ "%1/%2" }
 						 .arg(m_extsdk)
 						 .arg(m_ui->currentVersion->itemText(idx));
 	qDebug() << "set new path";
@@ -235,8 +234,8 @@ void DesktopWidget::init()
 	{
 		param.insert("services", QJsonArray{
 									 QJsonObject{
-										 { "name", "SecurosCtrlService" },
-										 { "shorthand", "S" },
+										 { "name", "postgres12" },
+										 { "shorthand", "P" },
 									 },
 								 });
 	}
@@ -266,7 +265,11 @@ void DesktopWidget::init()
 	h->addSpacerItem(new QSpacerItem{ 0, 0, QSizePolicy::Expanding, QSizePolicy::Maximum });
 	h->addWidget(new SymlinkinQtWidget(m_setup, this));
 
-	v->addWidget(new ProcessManager(m_setup, this));
+	if (!param.contains("enableProcManager"))
+		param.insert("enableProcManager", false);
+	if (param.value("enableProcManager").toBool())
+		v->addWidget(new ProcessManager(m_setup, this));
+
 	v->addItem(h);
 
 	this->layout()->addItem(v);

@@ -31,7 +31,6 @@ SOURCES += \
 			process.cpp \
 			main.cpp
 
-
 FORMS += \
 			symlinkframe.ui \
 			serviceframe.ui \

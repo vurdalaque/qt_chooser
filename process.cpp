@@ -146,7 +146,7 @@ ProcessManager::ProcessManager(Settings* s, QWidget* parent)
 	m_ui->setupUi(this);
 	QJsonObject& params = s->params();
 	if (!params.contains("process") || !params.value("process").isArray())
-		params.insert("process", QJsonArray{ "^iss_helper.*$" });
+		params.insert("process", QJsonArray{ "^qt_chooser.*$" });
 
 	for (const auto& v : params.value("process").toArray())
 		m_watchableProcess.push_back(v.toString());

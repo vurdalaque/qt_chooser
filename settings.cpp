@@ -49,7 +49,7 @@ QString Settings::configPath() const
 		qDebug() << "create settings directory" << loc.absolutePath();
 		loc.mkdir(".");
 	}
-	return QString("%1/%2").arg(loc_list[0]).arg("iss_helper.json");
+	return QString("%1/%2").arg(loc_list[0]).arg("qt_chooser.json");
 }
 
 QJsonObject& Settings::params()
