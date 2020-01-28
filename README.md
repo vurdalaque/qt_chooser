@@ -1,4 +1,4 @@
-![](https://https://github.com/vurdalaque/qt_chooser/preview/sample.png)
+![](https://github.com/vurdalaque/qt_chooser/blob/master/preview/sample.png)
 ## qt_chooser
 
 Simple tool that provides fast switch between Qt's versions. Designed for Windows 10.

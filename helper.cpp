@@ -89,7 +89,7 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 	}
 
 	if (!param.contains("extsdk"))
-		param.insert("extsdk", "d:/projects/extsdk/trunk/qt");
+		param.insert("extsdk", "D:/projects/extsdk/trunk/qt");
 	m_extsdk = param.value("extsdk").toString();
 
 	QString errorText;
@@ -176,7 +176,6 @@ void SymlinkinQtWidget::changeVersion(int idx)
 	QString nupath = QString{ "%1/%2" }
 						 .arg(m_extsdk)
 						 .arg(m_ui->currentVersion->itemText(idx));
-	qDebug() << "set new path";
 
 	tool::symlink l{ m_mountPoint };
 	l.unlink();
