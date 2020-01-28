@@ -1,0 +1,6 @@
+*.stash
+*.pdb
+*.bat
+*.json
+build
+Makefile
