@@ -138,7 +138,9 @@ void ServiceManager::enumerateServices()
 		auto services = tool::WmiObject::objects("service");
 		for (const auto& service : services)
 		{
-			if (service.property("Name") == m_serviceName)
+			const QRegularExpression re{ m_serviceName };
+			const QString serviceName{ service.property("Name").toString() };
+			if (serviceName == m_serviceName || re.match(serviceName).hasMatch())
 			{
 				m_service = std::make_unique<WmiService>(service);
 

@@ -309,4 +309,49 @@ MemoryWatchLabel[state="-1"]
 	color: red;
 }
 
+/* -------------------------------------------------------------------------------- */
+/* ScrollBar Control styling */
+
+QScrollBar {
+	background: transparent;
+	border: none;
+}
+
+QScrollBar:vertical {
+	width: 4px;
+	border: none;
+	background: none;
+}
+
+QScrollBar::handle:vertical {
+	background: rgb(34, 34, 34);
+	border: none;
+	/* border: 1px solid white; */
+}
+
+QScrollBar:up-arrow {
+	image: none;
+	background: none;
+	background-color: transparent;
+	border: none;
+}
+
+QScrollBar:down-arrow {
+	image: none;
+	background: none;
+	background-color: transparent;
+	border: none;
+}
+
+QScrollBar::sub-line {
+	background-color: transparent;
+	border: none;
+}
+
+QScrollBar::add-line {
+	background-color: transparent;
+	border: none;
+}
+
+
 )""";

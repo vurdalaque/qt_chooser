@@ -8,6 +8,7 @@ TARGET = ../qt_chooser
 CONFIG -= debug_and_release debug_and_release_target
 # CONFIG += console debug
 CONFIG += release
+# CONFIG += console
 
 DEFINES += QT_DEPRECATED_WARNINGS
 

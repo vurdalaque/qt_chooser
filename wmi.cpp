@@ -750,6 +750,7 @@ namespace tool
 			/* [in] */ LONG lObjectCount,
 			/* [size_is][in] */ IWbemClassObject __RPC_FAR* __RPC_FAR* apObjArray) override
 		{
+			qDebug() << "indicate!";
 			Q_UNUSED(lObjectCount);
 			Q_UNUSED(apObjArray);
 			return WBEM_S_NO_ERROR;
@@ -761,6 +762,7 @@ namespace tool
 			/* [in] */ BSTR strParam,
 			/* [in] */ IWbemClassObject __RPC_FAR* pObjParam) override
 		{
+			qDebug() << "set status";
 			Q_UNUSED(lFlags);
 			Q_UNUSED(hResult);
 			Q_UNUSED(strParam);
@@ -769,11 +771,16 @@ namespace tool
 		}
 	};
 
+////////////////////////////////////////////////////////////////////////////////
+
 	WmiNotification::WmiNotification()
+		: m_impl{ std::make_shared<impl>() }
 	{
+		qDebug() << "hello world";
 	}
 
 	WmiNotification::~WmiNotification()
 	{}
 
+////////////////////////////////////////////////////////////////////////////////
 } /* namespace tool */
