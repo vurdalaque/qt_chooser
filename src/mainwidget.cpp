@@ -1,8 +1,9 @@
-#include "helper.h"
+#include "mainwidget.h"
 #include "settings.h"
 #include "tooling.h"
 #include "service.h"
 #include "process.h"
+#include "pg_widget.h"
 
 #include "ui_symlinkframe.h"
 #include "ui_moveframe.h"
@@ -15,6 +16,7 @@
 #include <QDir>
 
 #include <QDebug>
+#include <stdexcept>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -23,8 +25,9 @@ MoveArea::MoveArea(QWidget* parent)
 	, m_ui(new Ui::MainMoveFrame)
 {
 	m_ui->setupUi(this);
-	QObject::connect(m_ui->toolButton, SIGNAL(clicked()), this, SLOT(onClose()));
-	this->setMouseTracking(true);
+	QObject::connect(m_ui->closeButton, SIGNAL(clicked()), this, SLOT(onClose()));
+	setMouseTracking(true);
+	m_ui->resizeButton->installEventFilter(this);
 }
 
 MoveArea::~MoveArea()
@@ -51,14 +54,20 @@ void MoveArea::mouseMoveEvent(QMouseEvent* e)
 	{
 		QWidget* top = parentWidget();
 		QPoint global = e->globalPos();
-		if (std::abs(global.x() - m_ouse.x()) > 100)
-			/* linux multimonitor bug */
-			global.setX(m_ouse.x() + 1);
-		// qDebug() << top->pos().x() << e->globalX();
-		QPoint pos(
-			top->pos().x() + (global.x() - m_ouse.x()),
-			top->pos().y() + (global.y() - m_ouse.y()));
-		top->move(pos);
+		if (!m_resize)
+		{
+			QPoint pos(
+				top->pos().x() + (global.x() - m_ouse.x()),
+				top->pos().y() + (global.y() - m_ouse.y()));
+			top->move(pos);
+		}
+		else
+		{
+			QPoint diff = global - m_ouse;
+			auto rc = top->geometry();
+			rc.setTopRight(rc.topRight() + diff);
+			top->setGeometry(rc);
+		}
 		m_ouse = global;
 	}
 }
@@ -66,6 +75,30 @@ void MoveArea::mouseMoveEvent(QMouseEvent* e)
 void MoveArea::onClose()
 {
 	parentWidget()->close();
+}
+
+bool MoveArea::eventFilter(QObject* obj, QEvent* ev)
+{
+	if (obj == qobject_cast<QObject*>(m_ui->resizeButton))
+	{
+		// catching events from resizeButton
+		auto me = dynamic_cast<QMouseEvent*>(ev);
+		if (ev->type() == QEvent::MouseButtonPress)
+		{
+			m_resize = true;
+			emit resizePressed(m_resize);
+			mousePressEvent(me);
+		}
+		if (ev->type() == QEvent::MouseButtonRelease)
+		{
+			m_resize = false;
+			emit resizePressed(m_resize);
+			mouseReleaseEvent(nullptr);
+		}
+		if (ev->type() == QEvent::MouseMove && m_resize)
+			mouseMoveEvent(me);
+	}
+	return QFrame::eventFilter(obj, ev);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -228,16 +261,14 @@ void DesktopWidget::init()
 			ga[3].toInt());
 	}
 
-	this->setStyleSheet(param.contains("css") ? param.value("css").toString() : g_defaultStyleSheet);
+	QFile stylesheet{ ":/stylesheet.css" };
+	if (!stylesheet.exists() || !stylesheet.open(QIODevice::ReadOnly))
+		throw std::runtime_error{ "no default stylesheet exists" };
+	this->setStyleSheet(param.contains("css") ? param.value("css").toString() : stylesheet.readAll());
+	stylesheet.close();
+
 	if (!param.contains("services"))
-	{
-		param.insert("services", QJsonArray{
-									 QJsonObject{
-										 { "name", "postgres12" },
-										 { "shorthand", "P" },
-									 },
-								 });
-	}
+		param.insert("services", QJsonArray{});
 	if (!param.value("services").isArray())
 		throw std::runtime_error("service parameter must be array");
 
@@ -259,20 +290,24 @@ void DesktopWidget::init()
 		const QString
 			serviceName = service.value("name").toString(),
 			shorthand = (service.contains("shorthand") ? service.value("shorthand").toString() : serviceName.mid(0, 1));
-		h->addWidget(new ServiceManager(serviceName, shorthand, m_setup, this));
+		h->addWidget(new ServiceManager{ serviceName, shorthand, this });
 	}
 	h->addSpacerItem(new QSpacerItem{ 0, 0, QSizePolicy::Expanding, QSizePolicy::Maximum });
-	h->addWidget(new SymlinkinQtWidget(m_setup, this));
+	h->addWidget(new SymlinkinQtWidget{ m_setup, this });
+
+	if (!param.contains("pg_dir"))
+		param.insert("pg_dir", QJsonArray{});
+	v->addWidget(new PostgresManager{ this });
 
 	if (!param.contains("enableProcManager"))
 		param.insert("enableProcManager", false);
 	if (param.value("enableProcManager").toBool())
-		v->addWidget(new ProcessManager(m_setup, this));
+		v->addWidget(new ProcessManager{ m_setup, this });
 
 	v->addItem(h);
 
 	this->layout()->addItem(v);
-	this->layout()->addWidget(new MoveArea(this));
+	this->layout()->addWidget(new MoveArea{ this });
 }
 
 void DesktopWidget::cleanup()
@@ -283,6 +318,12 @@ void DesktopWidget::cleanup()
 	QLayoutItem* item = nullptr;
 	while ((item = this->layout()->takeAt(0)) != nullptr)
 		delete item;
+}
+
+void DesktopWidget::keyReleaseEvent(QKeyEvent* e)
+{
+	if (e->key() == Qt::Key_Escape && !m_setup->get("ignore_esc", false).toBool())
+		this->close();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QJsonObject>
+#include <QVariant>
 
 class QFileSystemWatcher;
 
@@ -19,22 +20,25 @@ class Settings : public QObject
 public:
 	~Settings();
 
-	QString configPath() const;
-	QJsonObject& params();
+	Q_INVOKABLE QString configPath() const;
+	Q_INVOKABLE QJsonObject& params();
+	Q_INVOKABLE QVariant get(const QString&, const QVariant& = QVariant{});
+	Q_INVOKABLE void set(const QString&, const QVariant&);
 
-	static Settings* setup(SingletonPolicy = Get);
+	static Settings* setup(SingletonPolicy = Get, const QString& = "qt_chooser.json");
 signals:
 	void configUpdated();
 protected slots:
 	void configChanged(QString const&);
 
 protected:
-	Settings();
+	Settings(const QString&);
 	void configRead();
 	void configWrite();
 
 private:
 	QFileSystemWatcher* m_watcher = nullptr;
+	const QString m_confName;
 	QJsonObject m_config;
 };
 

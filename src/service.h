@@ -1,7 +1,8 @@
 #pragma once
-#include "wmi.h"
+#include "wmiservice.h"
 
 #include <QFrame>
+#include <QTextStream>
 
 #include <mutex>
 #include <thread>
@@ -14,41 +15,13 @@ namespace Ui
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class WmiService : public tool::WmiObject
-{
-public:
-	enum State
-	{
-		Unknown,
-		Stopped,
-		Running,
-		Paused,
-		StartPending,
-		StopPending,
-		ContinuePending,
-		PausePending,
-	};
-	WmiService(const tool::WmiObject&);
-
-	const QString path() const;
-	State state();
-	int start();
-	int stop();
-	int resume();
-
-protected:
-	int runMethod(const QByteArray&);
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
 class ServiceManager
 	: public QFrame
 {
 	Q_OBJECT
 
 public:
-	ServiceManager(const QString& serviceName, const QString& shorthand, Settings* setup, QWidget*);
+	ServiceManager(const QString& serviceName, const QString& shorthand, QWidget*);
 	~ServiceManager();
 
 signals:
@@ -75,5 +48,10 @@ protected:
 	bool m_stopThread = false, m_serviceToggle = false;
 	std::unique_ptr<WmiService> m_service{ nullptr };
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+QTextStream& operator<<(QTextStream&, WmiService::State);
+QTextStream& operator<<(QTextStream&, WmiService::StartMode);
 
 ////////////////////////////////////////////////////////////////////////////////

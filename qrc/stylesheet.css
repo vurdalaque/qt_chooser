@@ -1,7 +1,3 @@
-// vim: ft=css
-#include "helper.h"
-
-const QString DesktopWidget::g_defaultStyleSheet = R"""(
 * {
  	color: white;
 	/* background-color: rgb(50, 50, 50); */
@@ -124,11 +120,9 @@ const QString DesktopWidget::g_defaultStyleSheet = R"""(
 	background-color: rgb(34,34,34);
 }
 
-
 #MoveFrame > QToolButton
 {
 	background-color: transparent;
-	qproperty-text: '✕';
 	padding-left: 1px;
 	padding-bottom: 2px;
 }
@@ -136,6 +130,17 @@ const QString DesktopWidget::g_defaultStyleSheet = R"""(
 #MoveFrame > QToolButton:hover
 {
 	background-color: rgb(130,130,130);
+}
+
+#MoveFrame > #closeButton
+{
+	qproperty-text: '✕';
+}
+
+#MoveFrame > #resizeButton
+{
+	font-size: 10pt;
+	qproperty-text: '⇋';
 }
 
 /* -------------------------------------------------------------------------------- */
@@ -207,11 +212,6 @@ StateLabel[state="3"]
 
 /* -------------------------------------------------------------------------------- */
 /* Process Control styling */
-
-#proctree
-{
-	border: none;
-}
 
 #proclist
 {
@@ -353,5 +353,150 @@ QScrollBar::add-line {
 	border: none;
 }
 
+/* -------------------------------------------------------------------------------- */
+/* PostgreSQL controls */
 
-)""";
+#PostgresFrame
+{
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+#PostgresNotFoundWidget
+{
+	font-size: 10pt;
+	background-color: transparent;
+	padding-top: 3px;
+	padding-bottom: 3px;
+}
+
+#PostgresNotFoundWidget > #text
+{
+	color: rgb(50, 50, 50);
+	qproperty-text: 'no PostgreSQL found';
+}
+
+#PostgresNotFoundWidget > #text:hover
+{
+	color: rgb(120, 120, 120);
+}
+
+#PostgresWidget
+{
+	padding: 1px;
+	background-color: rgba(130, 130, 130, 0.1);
+}
+
+#PostgresWidget > #versionFrame
+{
+	background-color: transparent;
+	font-size: 12pt;
+	min-width: 100px;
+	max-width: 100px;
+}
+
+#PostgresWidget > #dbControl
+{
+	background-color: transparent;
+}
+
+#PostgresWidget > #versionFrame > #version
+{
+	background-color: transparent;
+	color: rgb(170, 170, 170);
+}
+
+#PostgresWidget > #versionFrame > #path
+{
+	background-color: transparent;
+	font-size: 8pt;
+	color: rgb(130, 130, 130);
+}
+
+#ClusterWidget
+{
+	font-size: 8pt;
+	background-color: transparent;
+}
+
+/* #ClusterWidget[state="0"] > #ctlFrame */
+/* { */
+	/* background-color: rgb(130, 130, 130); */
+/* } */
+
+/* #ClusterWidget[state="1"] > #ctlFrame */
+/* { */
+	/* background-color: rgba(30, 130, 30, 0.1); */
+/* } */
+
+#ClusterWidget[state="2"] > #ctlFrame
+{
+	background-color: rgba(130, 30, 30, 0.1);
+}
+
+#ClusterWidget[state="3"] > #ctlFrame
+{
+	background-color: rgba(30, 130, 30, 0.1);
+}
+
+#ClusterWidget > #path
+{
+	color: rgb(130, 130, 130);
+	font-size: 8pt;
+	padding-left: 2px;
+}
+
+#ClusterWidget > #ctlFrame > #ctl
+{
+	background-color: transparent;
+	height: 14px;
+	width: 14px;
+}
+
+#ClusterWidget > #ctlFrame > #ctl:hover
+{
+	background-color: rgb(130, 130, 130);
+}
+
+#ClusterWidget[state="0"] > #ctlFrame > #ctl
+{
+	padding-bottom: 2px;
+	padding-left: 1px;
+	color: #B22222;
+	qproperty-text: "⏹";
+}
+
+#ClusterWidget[state="1"] > #ctlFrame > #ctl
+{
+	padding-bottom: 3px;
+	color: #556B2F;
+	font-size: 12pt;
+	qproperty-text: "⏵";
+}
+
+#ClusterWidget[state="2"] > #ctlFrame > #ctl /* service stopped */
+{
+	padding-bottom: 2px;
+	padding-left: 1px;
+	color: #B22222;
+	qproperty-text: "⏹";
+}
+
+#ClusterWidget[state="3"] > #ctlFrame > #ctl /* service started */
+{
+	padding-bottom: 3px;
+	color: #556B2F;
+	font-size: 12pt;
+	qproperty-text: "⏵";
+}
+
+#ClusterWidget > #ctlFrame > #port
+{
+	margin-left: 6px;
+	margin-right: 1px;
+	padding-left: 6px;
+	color: rgb(130, 130, 130);
+	background-color: rgba(130, 130, 130, 0.1);
+	max-width: 50px;
+}
+

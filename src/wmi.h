@@ -5,8 +5,6 @@
 #include <deque>
 #include <set>
 
-#include <QDebug>
-
 struct IWbemLocator;
 struct IWbemServices;
 struct IWbemClassObject;
@@ -17,6 +15,16 @@ using ClassObject = std::shared_ptr<IWbemClassObject>;
 
 namespace tool
 {
+	////////////////////////////////////////////////////////////////////////////////
+
+	template <class T>
+	QVariant ref(T& v)
+	{ // wrap output values for wmi methods. hide rtti killer
+		return QVariant::fromValue((void*)&v);
+	}
+
+	extern const QVariant nullWmiObject;
+
 	////////////////////////////////////////////////////////////////////////////////
 
 	struct CoInitialize
@@ -35,11 +43,23 @@ namespace tool
 
 	////////////////////////////////////////////////////////////////////////////////
 
+	struct WmiProperty
+	{
+		QString name;
+		QVariant value{ QVariant::Invalid };
+		int cimType{ 0 };
+
+		operator QVariant() const;
+		QVariant::Type type() const;
+		QString toString() const;
+		const ushort* utf16() const;
+	};
+
+	////////////////////////////////////////////////////////////////////////////////
+
 	class WmiObject : public QObject
 	{
 	public:
-		void updateObject();
-
 		virtual const QMetaObject* metaObject() const override;
 		virtual void* qt_metacast(const char*) override;
 		virtual int qt_metacall(QMetaObject::Call, int, void**) override;
@@ -47,20 +67,28 @@ namespace tool
 
 	public:
 		using List = std::deque<WmiObject>;
-		using PropertyList = std::map<QString, QVariant>;
+		using PropertyList = std::map<QString, WmiProperty>;
 		using MethodParameters = std::deque<std::pair<QString, QVariant>>;
 		using MethodDefinition = std::pair<QString, std::pair<MethodParameters, MethodParameters>>;
 		using MethodList = std::set<MethodDefinition>;
 
+		WmiObject();
 		WmiObject(const WmiObject&);
 		~WmiObject();
+		IWbemClassObject* object() const;
+		operator QVariant() const;
+		void updateObject();
+		WmiObject spawnInstance() const;
+		int method(const QByteArray&, const QVariantList& = QVariantList{}, Qt::ConnectionType = Qt::DirectConnection) const;
+
 		WmiObject& operator=(const WmiObject&);
 		WmiObject& operator=(WmiObject&&);
 
 		static const List objects(const QString&);
+		static WmiObject object(const QString&);
 
 	protected:
-		WmiObject(IWbemClassObject*);
+		WmiObject(IWbemClassObject*, const QString& = QString{});
 		static QString createSignature(const MethodDefinition&);
 		static QList<QByteArray> getParameterNames(const MethodDefinition&);
 
@@ -73,7 +101,7 @@ namespace tool
 	protected:
 		IWbemClassObject *m_object = nullptr, *m_classObject = nullptr;
 		QMetaObject* m_metaObject = nullptr;
-		std::map<int, QString> m_properties;
+		std::map<int, WmiProperty> m_properties;
 		std::map<int, MethodDefinition> m_methods;
 	};
 
@@ -93,3 +121,4 @@ namespace tool
 	////////////////////////////////////////////////////////////////////////////////
 
 } /* namespace tool */
+Q_DECLARE_METATYPE(tool::WmiObject);

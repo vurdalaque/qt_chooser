@@ -68,7 +68,14 @@
       <property name="spacing">
        <number>0</number>
       </property>
-      <item row="1" column="0">
+      <item row="0" column="0">
+       <widget class="QToolButton" name="closeButton">
+        <property name="text">
+         <string>X</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
        <widget class="QFrame" name="LineFrame">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -179,10 +186,10 @@
         </layout>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QToolButton" name="toolButton">
+      <item row="1" column="0">
+       <widget class="QToolButton" name="resizeButton">
         <property name="text">
-         <string>X</string>
+         <string>o</string>
         </property>
        </widget>
       </item>

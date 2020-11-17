@@ -1,4 +1,6 @@
 #include "wmi.h"
+#include <stdexcept>
+#include <utility>
 #define _WIN32_DCOM
 #include <comdef.h>
 #include <Wbemidl.h>
@@ -16,6 +18,10 @@
 
 namespace tool
 {
+	const QVariant nullWmiObject = QVariant::fromValue(static_cast<QObject*>(nullptr));
+
+	////////////////////////////////////////////////////////////////////////////////
+
 	QVariant::Type cim2qvariant(const CIMTYPE ct)
 	{
 		CIMTYPE_ENUMERATION ce = static_cast<CIMTYPE_ENUMERATION>(ct);
@@ -45,7 +51,10 @@ namespace tool
 			return QVariant::Char;
 		case CIM_FLAG_ARRAY:
 			return QVariant::ByteArray;
-		case CIM_OBJECT:
+		case CIM_OBJECT: {
+			WmiObject* obj{ nullptr };
+			return QVariant::fromValue(obj).type();
+		}
 		case CIM_EMPTY:
 		case CIM_ILLEGAL:
 			break;
@@ -61,78 +70,166 @@ namespace tool
 		return result;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////
+
 	VARIANT toVariant(const CIMTYPE ct, void* arg)
 	{
 		VARIANT _variant;
 		::VariantInit(&_variant);
-		_variant_t result;
-		result.Attach(_variant);
 
 		CIMTYPE_ENUMERATION ce = static_cast<CIMTYPE_ENUMERATION>(ct);
 		switch (ce)
 		{
+		case CIM_BOOLEAN:
+			_variant.vt = VT_BOOL;
+			_variant.boolVal = cast<bool>(arg);
+			break;
 		case CIM_SINT8:
-			qDebug() << "CIM_SINT8";
-			result = cast<int8_t>(arg);
+			_variant.vt = VT_I1;
+			_variant.cVal = cast<int8_t>(arg);
 			break;
 		case CIM_SINT16:
-			qDebug() << "CIM_SINT16";
-			result = cast<int16_t>(arg);
+			_variant.vt = VT_I2;
+			_variant.iVal = cast<int16_t>(arg);
 			break;
 		case CIM_SINT32:
-			qDebug() << "CIM_SINT32";
-			result = cast<int32_t>(arg);
+			_variant.vt = VT_I4;
+			_variant.lVal = cast<int32_t>(arg);
 			break;
 		case CIM_SINT64:
-			qDebug() << "CIM_SINT64";
-			result = cast<int64_t>(arg);
+			_variant.vt = VT_I8;
+			_variant.llVal = cast<int64_t>(arg);
 			break;
 		case CIM_UINT8:
-			qDebug() << "CIM_UINT8";
-			result = cast<uint8_t>(arg);
+		case CIM_UINT16: // kinda strange mapping
+			_variant.vt = VT_UI1;
+			_variant.bVal = cast<uint8_t>(arg);
 			break;
-		case CIM_UINT16:
-			qDebug() << "CIM_UINT16";
-			result = cast<uint16_t>(arg);
-			break;
+		// case CIM_UINT16:
+		// _variant.vt = VT_UI2;
+		// _variant.uiVal = cast<uint16_t>(arg);
+		// break;
 		case CIM_UINT32:
-			// cast type onto VT_I4
-			result = cast<long>(arg);
+			_variant.vt = VT_UI4;
+			_variant.ulVal = cast<uint32_t>(arg);
 			break;
 		case CIM_UINT64:
-			qDebug() << "CIM_UINT64";
-			result = cast<uint64_t>(arg);
+			_variant.vt = VT_UI8;
+			_variant.ullVal = cast<uint64_t>(arg);
 			break;
 		case CIM_REAL32:
-			qDebug() << "CIM_REAL32";
-			result = cast<float>(arg);
+			_variant.vt = VT_R4;
+			_variant.fltVal = cast<float>(arg);
 			break;
 		case CIM_REAL64:
-			qDebug() << "CIM_REAL64";
-			result = cast<double>(arg);
-			break;
-		case CIM_BOOLEAN:
-			qDebug() << "CIM_BOOLEAN";
-			result = cast<bool>(arg);
-			break;
-		case CIM_STRING:
-		case CIM_DATETIME:
-			qDebug() << "CIM_(STRING|DATETIME)";
-			result = static_cast<char*>(arg);
+			_variant.vt = VT_R8;
+			_variant.dblVal = cast<double>(arg);
 			break;
 		case CIM_CHAR16:
-			qDebug() << "CIM_CHAR16";
-			result = cast<char16_t>(arg);
+		case CIM_STRING: {
+			QString* s = static_cast<QString*>(arg);
+			_variant.vt = VT_BSTR;
+			_variant.bstrVal = (!s->isEmpty()
+					? ::SysAllocString(reinterpret_cast<const wchar_t*>(s->utf16()))
+					: nullptr);
 			break;
+		}
+		case CIM_OBJECT: {
+			QVariant* value = static_cast<QVariant*>(arg);
+			_variant.vt = VT_UNKNOWN;
+			if (value->value<void*>() == nullptr)
+			{
+				_variant.punkVal = nullptr;
+				break;
+			}
+			WmiObject* obj = static_cast<WmiObject*>(value->value<void*>());
+			_variant.punkVal = obj->object();
+			obj->object()->AddRef();
+			break;
+		}
+		case CIM_DATETIME:
 		case CIM_REFERENCE:
 		case CIM_FLAG_ARRAY:
-		case CIM_OBJECT:
 		case CIM_EMPTY:
 		case CIM_ILLEGAL:
 			qDebug() << "Unknown type!";
 			throw std::runtime_error("failed to cast type");
 		};
-		return result.Detach();
+		return _variant;
+	}
+
+	void fromVariant(const CIMTYPE ct, VARIANT& _variant, void* arg)
+	{
+		void* result = static_cast<QVariant*>(arg)->value<void*>();
+		CIMTYPE_ENUMERATION ce = static_cast<CIMTYPE_ENUMERATION>(ct);
+		switch (ce)
+		{
+		case CIM_BOOLEAN:
+			// _variant.vt = VT_BOOL;
+			*static_cast<bool*>(result) = _variant.boolVal;
+			break;
+		case CIM_SINT8:
+			// _variant.vt = VT_I1;
+			*static_cast<int8_t*>(result) = _variant.cVal;
+			break;
+		case CIM_SINT16:
+			// _variant.vt = VT_I2;
+			*static_cast<int16_t*>(result) = _variant.iVal;
+			break;
+		case CIM_SINT32:
+			// _variant.vt = VT_I4;
+			*static_cast<int32_t*>(result) = _variant.lVal;
+			break;
+		case CIM_SINT64:
+			// _variant.vt = VT_I8;
+			*static_cast<int64_t*>(result) = _variant.llVal;
+			break;
+		case CIM_UINT8:
+			// _variant.vt = VT_UI1;
+			*static_cast<uint8_t*>(result) = _variant.bVal;
+			break;
+		case CIM_UINT16:
+			// _variant.vt = VT_UI2;
+			*static_cast<uint16_t*>(result) = _variant.uiVal;
+			break;
+		case CIM_UINT32:
+			// _variant.vt = VT_UI4;
+			*static_cast<uint32_t*>(result) = _variant.ulVal;
+			break;
+		case CIM_UINT64:
+			// _variant.vt = VT_UI8;
+			*static_cast<uint64_t*>(result) = _variant.ullVal;
+			break;
+		case CIM_REAL32:
+			// _variant.vt = VT_R4;
+			*static_cast<float*>(result) = _variant.fltVal;
+			break;
+		case CIM_REAL64:
+			// _variant.vt = VT_R8;
+			*static_cast<double*>(result) = _variant.dblVal;
+			break;
+		case CIM_CHAR16:
+		case CIM_STRING: {
+			QString* s = static_cast<QString*>(result);
+			*s = QString::fromUtf16(reinterpret_cast<const ushort*>(_variant.bstrVal));
+			// _variant.vt = VT_BSTR;
+			break;
+		}
+		case CIM_OBJECT: {
+			throw std::runtime_error{ "not implemented yet" };
+			// WmiObject* obj = static_cast<WmiObject*>(result);
+			// _variant.vt = VT_UNKNOWN;
+			// _variant.punkVal = obj->object();
+			break;
+		}
+		case CIM_DATETIME:
+		case CIM_REFERENCE:
+		case CIM_FLAG_ARRAY:
+		case CIM_EMPTY:
+		case CIM_ILLEGAL:
+			qDebug() << "Unknown type!";
+			throw std::runtime_error("failed to cast type");
+		};
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -258,24 +355,44 @@ namespace tool
 
 	////////////////////////////////////////////////////////////////////////////////
 
-	WmiObject::WmiObject(IWbemClassObject* o)
+	WmiProperty::operator QVariant() const { return value; }
+
+	QVariant::Type WmiProperty::type() const { return value.type(); }
+
+	QString WmiProperty::toString() const { return value.toString(); }
+
+	const ushort* WmiProperty::utf16() const { return name.utf16(); }
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	WmiObject::WmiObject()
+	{
+		setObjectName("WmiObject");
+	}
+
+	WmiObject::WmiObject(IWbemClassObject* o, const QString& objectName)
 		: m_object(o)
 	{
 		setObjectName("WmiObject");
 		auto wmiProperties = properties(o);
+		// for (const auto& p : wmiProperties)
+		// qDebug() << p.first << p.second;
 
 		const auto nit = wmiProperties.find("CreationClassName");
-		if (nit == wmiProperties.end())
+		QString name = objectName;
+		if (nit != wmiProperties.end() && !nit->second.toString().isEmpty())
+			name = nit->second.toString();
+		if (name.isEmpty())
 			throw std::runtime_error("Failed to set class name");
 
 		const QMetaObject* basic = QObject::metaObject();
 		QMetaObjectBuilder b(basic);
 
-		b.setClassName(nit->second.toString().toUtf8().constData());
+		b.setClassName(name.toUtf8().constData());
 		// b.setSuperClass(&QObject::staticMetaObject);
 		b.setStaticMetacallFunction(&WmiObject::qt_static_metacall);
 
-		bstr_wrapper className(nit->second.toString());
+		bstr_wrapper className(name);
 		COMP(&IWbemServices::GetObject, CoInitialize::services(),
 			className, 0, NULL, &m_classObject, NULL);
 
@@ -295,12 +412,13 @@ namespace tool
 			pb.setEnumOrFlag(false);
 			pb.setConstant(false);
 			pb.setFinal(false);
-			m_properties.insert({ pb.index(), prop.first });
+			m_properties.insert({ pb.index(), prop.second });
 		}
 
 		for (const auto method : methods(m_classObject))
 		{
 			auto mb = b.addMethod(createSignature(method).toUtf8());
+			// qDebug() << "sig: " << createSignature(method).toUtf8();
 			mb.setReturnType("int");
 			mb.setParameterNames(getParameterNames(method));
 			mb.setAccess(QMetaMethod::Public);
@@ -317,9 +435,12 @@ namespace tool
 		, m_methods(o.m_methods)
 
 	{
-		m_object->AddRef();
-		m_classObject->AddRef();
-		m_metaObject = QMetaObjectBuilder(o.metaObject()).toMetaObject();
+		if (m_object != nullptr)
+			m_object->AddRef();
+		if (m_classObject != nullptr)
+			m_classObject->AddRef();
+		if (o.metaObject() != nullptr)
+			m_metaObject = QMetaObjectBuilder(o.metaObject()).toMetaObject();
 	}
 
 	WmiObject::~WmiObject()
@@ -334,6 +455,16 @@ namespace tool
 		m_methods.clear();
 	}
 
+	IWbemClassObject* WmiObject::object() const
+	{
+		return m_object;
+	}
+
+	WmiObject::operator QVariant() const
+	{
+		return QVariant::fromValue((void*)this);
+	}
+
 	void WmiObject::updateObject()
 	{
 		VARIANT vtPath;
@@ -344,6 +475,35 @@ namespace tool
 		m_object->Release();
 		COMP(&IWbemServices::GetObject, CoInitialize::services(),
 			objectPath, 0, NULL, &m_object, NULL);
+	}
+
+	WmiObject WmiObject::spawnInstance() const
+	{
+		IWbemClassObject* inst{ nullptr };
+		COMP(&IWbemClassObject::SpawnInstance, m_object, 0, &inst);
+		return WmiObject{ inst, this->metaObject()->className() };
+	}
+
+	int WmiObject::method(const QByteArray& signature, const QVariantList& vargs, Qt::ConnectionType ct) const
+	{
+		int retval = -1, mi = 0;
+		const QMetaObject* o = metaObject();
+		mi = o->indexOfMethod(signature);
+		if (mi < 0)
+			throw std::runtime_error("cannot find specified method");
+		QMetaMethod method = o->method(mi);
+		QGenericArgument args[10];
+		for (int idx = 0; idx != (vargs.size() <= 9 ? vargs.size() : 9); ++idx)
+			args[idx] = QGenericArgument(vargs[idx].typeName(), vargs[idx].data());
+
+		if (!method.invoke(const_cast<tool::WmiObject*>(this),
+				ct,
+				Q_RETURN_ARG(int, retval),
+				args[0], args[1], args[2], args[3], args[4],
+				args[5], args[6], args[7], args[8], args[9]))
+			throw std::runtime_error("method call failed");
+
+		return retval;
 	}
 
 	WmiObject& WmiObject::operator=(const WmiObject& o)
@@ -430,8 +590,11 @@ namespace tool
 		COMP(&IWbemClassObject::SpawnInstance, method, 0, &spawnInst);
 		COMP(&IWbemServices::ExecMethod, CoInitialize::services(),
 			objectPath, methodName, 0,
-			// ctx   inParams  outParams result
+			// ctx   inParams  outParams   result
 			nullptr, inParams, &outParams, nullptr);
+		// hres = pSvc->ExecMethod(ClassName,
+		//              MethodName, 0,
+		// NULL, pClassInstance, &pOutParams, NULL);
 
 		// method got result output
 		if (outParams != nullptr)
@@ -452,15 +615,13 @@ namespace tool
 			{
 				bstr_wrapper paramName{ out[idx].first };
 				VARIANT vtResult;
-				QVariant* retval = static_cast<QVariant*>(args[in.size() + idx + 1]);
-				if (retval == nullptr)
+				if (args[in.size() + idx + 1] == nullptr)
 					throw std::runtime_error("cannot cast return value to variant");
+				CIMTYPE cim;
 				COMP(&IWbemClassObject::Get, outParams,
-					paramName, 0, &vtResult, 0, 0);
-				QVariant result = VARIANTToQVariant(vtResult, 0);
-				if (result.type() != out[idx].second)
-					throw std::runtime_error("return types mismatched");
-				retval->create(result.type(), result.constData());
+					paramName, 0, &vtResult, &cim, 0);
+				fromVariant(cim, vtResult, args[in.size() + idx + 1]);
+				qDebug() << out[idx].first << out[idx].second;
 				VariantClear(&vtResult);
 			}
 		}
@@ -506,6 +667,15 @@ namespace tool
 		return result;
 	}
 
+	WmiObject WmiObject::object(const QString& name)
+	{
+		bstr_wrapper objectName{ QString{ "Win32_%1" }.arg(name) };
+		IWbemClassObject* object{ nullptr };
+		COMP(&IWbemServices::GetObject, CoInitialize::services(),
+			objectName, 0, NULL, &object, NULL);
+		return WmiObject{ object, QString{ "Win32_%1" }.arg(name) };
+	}
+
 	const std::deque<std::pair<QString, QVariant>> WmiObject::qualifiers(IWbemClassObject* object)
 	{
 		std::deque<std::pair<QString, QVariant>> result;
@@ -529,7 +699,7 @@ namespace tool
 		return result;
 	}
 
-	const WmiObject::PropertyList WmiObject::properties(IWbemClassObject* object, bool b)
+	const WmiObject::PropertyList WmiObject::properties(IWbemClassObject* object, bool withHiddenProps)
 	{
 		PropertyList result;
 		if (object == nullptr)
@@ -540,7 +710,7 @@ namespace tool
 			bstr_wrapper strName;
 			if (WBEM_S_NO_MORE_DATA == COMP(&IWbemClassObject::Next, object, 0, strName, nullptr, nullptr, nullptr))
 				break;
-			if (b && static_cast<QString>(strName).startsWith("__"))
+			if (withHiddenProps && static_cast<QString>(strName).startsWith("__"))
 				continue;
 
 			VARIANT vtProp;
@@ -551,7 +721,7 @@ namespace tool
 			if (value.type() == QVariant::Invalid)
 				value = QVariant{ cim2qvariant(cim) };
 
-			result.insert({ static_cast<QString>(strName), value });
+			result.insert({ static_cast<QString>(strName), WmiProperty{ strName, value, cim } });
 		}
 		COMP(&IWbemClassObject::EndEnumeration, object);
 		return result;
@@ -680,8 +850,7 @@ namespace tool
 		if (c == QMetaObject::WriteProperty && propIt != m_properties.end())
 		{ // WriteProperty { void* constData, qvariant *newValue, int &status, int &flags }
 			QVariant* value = static_cast<QVariant*>(arg[1]);
-			VARIANT vtProp;
-			QVariantToVARIANT(*value, vtProp);
+			VARIANT vtProp = toVariant(propIt->second.cimType, value->data());
 			COMP(&IWbemClassObject::Put, m_object,
 				reinterpret_cast<const wchar_t*>(propIt->second.utf16()), 0, &vtProp, 0);
 			VariantClear(&vtProp);
@@ -771,7 +940,7 @@ namespace tool
 		}
 	};
 
-////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
 
 	WmiNotification::WmiNotification()
 		: m_impl{ std::make_shared<impl>() }
@@ -782,5 +951,5 @@ namespace tool
 	WmiNotification::~WmiNotification()
 	{}
 
-////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////
 } /* namespace tool */

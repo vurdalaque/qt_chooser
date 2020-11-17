@@ -1,0 +1,7 @@
+<!-- vim: ft=xml
+	 -->
+<!DOCTYPE RCC><RCC version="1.0">
+	<qresource>
+		<file alias="stylesheet.css">stylesheet.css</file>
+	</qresource>
+</RCC>

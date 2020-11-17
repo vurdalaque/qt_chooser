@@ -12,33 +12,16 @@ CONFIG += release
 
 DEFINES += QT_DEPRECATED_WARNINGS
 
-HEADERS += \
-			wmi.h \
-			helper.h \
-			settings.h \
-			statelabel.h \
-			service.h \
-			process.h
-
-
 SOURCES += \
-			helper.cpp \
-			tooling.cpp \
-			wmi.cpp \
-			stylesheet.cpp \
-			settings.cpp \
-			service.cpp \
-			statelabel.cpp \
-			process.cpp \
-			main.cpp
+			$$files(src/*.cpp)
 
-FORMS += \
-			symlinkframe.ui \
-			serviceframe.ui \
-			moveframe.ui \
-			processframe.ui \
-			processwidget.ui
+HEADERS += \
+			$$files(src/*.h)
 
+RESOURCES += \
+			$$files(qrc/*.qrc)
+
+FORMS += $$files(ui/*.ui)
 
 CONFIG(debug, debug|release) {
     DESTDIR = build/debug

@@ -5,79 +5,15 @@
 #include <QMetaMethod>
 #include <QFileIconProvider>
 #include <QRegularExpression>
+#include <QTimer>
+#include <chrono>
+#include <thread>
+
+#include <QDebug>
 
 ////////////////////////////////////////////////////////////////////////////////
 
-WmiService::WmiService(const tool::WmiObject& o)
-	: tool::WmiObject(o)
-{
-}
-
-const QString WmiService::path() const
-{
-	static const QRegularExpression startWithQuotes{ "^\"([^\"]+).*$" },
-		plainRun{ "^([^ ]+).*$" };
-	const QString p = property("PathName").toString();
-	return (p.startsWith('\"')
-			? startWithQuotes.match(p).captured(1)
-			: plainRun.match(p).captured(1))
-		.replace('\\', '/');
-}
-
-WmiService::State WmiService::state()
-{
-	static const std::map<QString, State> serviceStatuses{
-		{ "Stopped", Stopped },
-		{ "Start Pending", StartPending },
-		{ "Stop Pending", StopPending },
-		{ "Running", Running },
-		{ "Continue Pending", ContinuePending },
-		{ "Pause Pending", PausePending },
-		{ "Paused", Paused },
-		{ "Unknown", Unknown },
-	};
-	updateObject();
-	const auto stateString = this->property("State").toString();
-	const auto s = serviceStatuses.find(stateString);
-	if (s == serviceStatuses.end())
-		throw std::runtime_error("no statuse found");
-	return s->second;
-}
-
-int WmiService::start()
-{
-	return runMethod("StartService()");
-}
-
-int WmiService::stop()
-{
-	return runMethod("StopService()");
-}
-
-int WmiService::resume()
-{
-	return runMethod("ResumeService()");
-}
-
-int WmiService::runMethod(const QByteArray& signature)
-{
-	updateObject();
-	int retval = -1, mi = 0;
-	const QMetaObject* o = metaObject();
-	mi = o->indexOfMethod(signature);
-	if (mi < 0)
-		throw std::runtime_error("service method not found!");
-	QMetaMethod method = o->method(mi);
-	if (!method.invoke(static_cast<tool::WmiObject*>(this),
-			Qt::DirectConnection,
-			Q_RETURN_ARG(int, retval)))
-		throw std::runtime_error("method call failed");
-	return retval;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-ServiceManager::ServiceManager(const QString& sn, const QString& sh, Settings* setup, QWidget* parent)
+ServiceManager::ServiceManager(const QString& sn, const QString& sh, QWidget* parent)
 	: QFrame(parent)
 	, m_serviceName(sn)
 	, m_ui(new Ui::MainServiceFrame)
@@ -93,7 +29,8 @@ ServiceManager::ServiceManager(const QString& sn, const QString& sh, Settings* s
 	QObject::connect(m_ui->label, SIGNAL(clicked()),
 		this, SLOT(toggleService()));
 
-	m_thread = std::thread(&ServiceManager::notifierThread, this);
+	QTimer::singleShot(std::chrono::milliseconds(10),
+		[&]() { m_thread = std::thread(&ServiceManager::notifierThread, this); });
 }
 
 ServiceManager::~ServiceManager()
@@ -214,18 +151,84 @@ void ServiceManager::notifierThread()
 			auto lock = std::lock_guard{ m_lock };
 			if (m_stopThread || !m_service)
 				break;
-			auto state = m_service->state();
-
-			if (m_serviceToggle)
-				onToggleService(state);
-			else if (state != lastState)
+			try
 			{
-				emit stateChanged(static_cast<int>(state));
-				lastState = state;
+				auto state = m_service->state();
+
+				if (m_serviceToggle)
+					onToggleService(state);
+				else if (state != lastState)
+				{
+					emit stateChanged(static_cast<int>(state));
+					lastState = state;
+				}
+			}
+			catch (const std::exception& e)
+			{
+				QTextStream out{ stdout };
+				out << "notifierThread: " << e.what() << endl;
+				m_stopThread = true;
+				continue;
 			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+QTextStream& operator<<(QTextStream& d, WmiService::State m)
+{
+	switch (m)
+	{
+	case WmiService::Unknown:
+		d << "Unknown";
+		break;
+	case WmiService::Stopped:
+		d << "Stopped";
+		break;
+	case WmiService::Running:
+		d << "Running";
+		break;
+	case WmiService::Paused:
+		d << "Paused";
+		break;
+	case WmiService::StartPending:
+		d << "StartPending";
+		break;
+	case WmiService::StopPending:
+		d << "StopPending";
+		break;
+	case WmiService::ContinuePending:
+		d << "ContinuePending";
+		break;
+	case WmiService::PausePending:
+		d << "PausePending";
+		break;
+	}
+	return d;
+}
+QTextStream& operator<<(QTextStream& d, WmiService::StartMode m)
+{
+	switch (m)
+	{
+	case WmiService::Boot:
+		d << "Boot";
+		break;
+	case WmiService::System:
+		d << "System";
+		break;
+	case WmiService::Auto:
+		d << "Auto";
+		break;
+	case WmiService::Manual:
+		d << "Manual";
+		break;
+	case WmiService::Disabled:
+		d << "Disabled";
+		break;
+	}
+	return d;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

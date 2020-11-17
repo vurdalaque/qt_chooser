@@ -9,6 +9,8 @@
 #include <QFileIconProvider>
 #include <QMetaMethod>
 
+#include <QDebug>
+
 ////////////////////////////////////////////////////////////////////////////////
 
 WmiProcess::WmiProcess(const tool::WmiObject& o)
@@ -161,7 +163,6 @@ ProcessManager::ProcessManager(Settings* s, QWidget* parent)
 		SLOT(onProcessDied(int)));
 
 	m_ui->proclist->setSelectionMode(QAbstractItemView::NoSelection);
-	m_ui->proctree->setVisible(false);
 	m_thread = std::thread(&ProcessManager::notifierThread, this);
 }
 
@@ -262,11 +263,11 @@ void ProcessManager::monitorWatchableCreate()
 		}
 		// else
 		// {
-			// it->second.updateObject();
-			// int
-				// workset = it->second.property("WorkingSetSize").toInt(),
-				// pid = it->second.property("ProcessId").toInt();
-			// emit memoryChanged(pid, workset);
+		// it->second.updateObject();
+		// int
+		// workset = it->second.property("WorkingSetSize").toInt(),
+		// pid = it->second.property("ProcessId").toInt();
+		// emit memoryChanged(pid, workset);
 		// }
 	}
 }

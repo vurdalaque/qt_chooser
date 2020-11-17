@@ -24,6 +24,8 @@ public:
 	MoveArea(QWidget*);
 	~MoveArea();
 
+signals:
+	void resizePressed(bool);
 protected slots:
 	void onClose();
 
@@ -31,10 +33,12 @@ protected:
 	void mousePressEvent(QMouseEvent*) override;
 	void mouseReleaseEvent(QMouseEvent*) override;
 	void mouseMoveEvent(QMouseEvent*) override;
+	bool eventFilter(QObject*, QEvent*) override;
 
 protected:
 	Ui::MainMoveFrame* m_ui = nullptr;
 	QPoint m_ouse;
+	bool m_resize{ false };
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +80,9 @@ protected slots:
 	void cleanup();
 
 protected:
-	static const QString g_defaultStyleSheet;
+	void keyReleaseEvent(QKeyEvent*) override;
+
+protected:
 	Settings* m_setup = nullptr;
 };
 
