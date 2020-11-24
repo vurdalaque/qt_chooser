@@ -2,6 +2,8 @@
 ## qt_chooser
 
 Simple tool that provides fast switch between Qt's versions. Designed for Windows 10.
+Also, added process monitor (configured in config file), and PostgreSQL manager.
+// todo: add more specific documentation
 
 ### Compiling and running
 Build tested on MSVC2017, and Qt 5.11.3
