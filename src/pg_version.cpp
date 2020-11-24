@@ -51,12 +51,16 @@ namespace helper
 
 			do
 			{
-				if (pe32.th32ProcessID == pid)
-					break;
+				const ushort* exeFile = (ushort*)pe32.szExeFile;
+				if (pe32.th32ProcessID == pid) // && QString::fromUtf16(exeFile) == "postgres.exe")
+				{
+					CloseHandle(hProcessSnap);
+					return true;
+				}
 			} while (Process32Next(hProcessSnap, &pe32));
 
 			CloseHandle(hProcessSnap);
-			return true;
+			// return true;
 		}
 		catch (const std::exception&)
 		{

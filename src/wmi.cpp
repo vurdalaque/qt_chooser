@@ -93,6 +93,7 @@ namespace tool
 			_variant.iVal = cast<int16_t>(arg);
 			break;
 		case CIM_SINT32:
+		case CIM_UINT32:
 			_variant.vt = VT_I4;
 			_variant.lVal = cast<int32_t>(arg);
 			break;
@@ -109,10 +110,10 @@ namespace tool
 		// _variant.vt = VT_UI2;
 		// _variant.uiVal = cast<uint16_t>(arg);
 		// break;
-		case CIM_UINT32:
-			_variant.vt = VT_UI4;
-			_variant.ulVal = cast<uint32_t>(arg);
-			break;
+		// case CIM_UINT32:
+		// _variant.vt = VT_UI4;
+		// _variant.ulVal = cast<uint32_t>(arg);
+		// break;
 		case CIM_UINT64:
 			_variant.vt = VT_UI8;
 			_variant.ullVal = cast<uint64_t>(arg);
@@ -621,7 +622,7 @@ namespace tool
 				COMP(&IWbemClassObject::Get, outParams,
 					paramName, 0, &vtResult, &cim, 0);
 				fromVariant(cim, vtResult, args[in.size() + idx + 1]);
-				qDebug() << out[idx].first << out[idx].second;
+				// qDebug() << out[idx].first << out[idx].second;
 				VariantClear(&vtResult);
 			}
 		}

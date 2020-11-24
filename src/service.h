@@ -1,5 +1,5 @@
 #pragma once
-#include "wmiservice.h"
+#include "wmi_service.h"
 
 #include <QFrame>
 #include <QTextStream>

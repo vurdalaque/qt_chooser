@@ -1,6 +1,6 @@
 #pragma once
 #include "pg_version.h"
-#include "wmiservice.h"
+#include "wmi_service.h"
 
 #include <QFrame>
 #include <QRunnable>
@@ -16,7 +16,6 @@ namespace Ui
 	class PostgresWidget;
 	class PostgresFrame;
 	class ClusterWidget;
-	;
 	class PostgresNotFoundWidget;
 } /* namespace Ui */
 
@@ -68,6 +67,10 @@ public:
 public slots:
 	void updateState();
 	void serviceDiscovered(const pg::PGVersion&, const pg::PGCluster&, pWmiService);
+	void clusterCtlPressed();
+
+protected:
+	void toggleService();
 
 protected:
 	Ui::ClusterWidget* m_ui{ nullptr };
@@ -106,6 +109,8 @@ public:
 
 	DirectoriesEnumerator* directoriesEnumerator() const;
 
+signals:
+	void updateStates();
 protected slots:
 	void versionsEnumerated(const pg::PGVersion::List&);
 

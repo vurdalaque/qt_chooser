@@ -39,11 +39,11 @@
 
 #LinkFrame > QComboBox
 {
-	border: 1px solid white;
+	border: 1px solid rgb(130, 130, 130);
 	border-radius: 8px;
 	background-color: transparent;
-	color: white;
-	selection-color: rgb(150, 150, 150);
+	color: rgb(150, 150, 150);
+	selection-color: rgb(50, 50, 50);
 	font-size: 8pt;
 	height: 18px;
 	padding-left: 10px;
@@ -54,7 +54,7 @@
 	border: none;
 	selection-background-color: rgb(130, 130, 130);
 	selection-color: rgb(34, 34, 34);
-	color: white;
+	color: rgb(150, 150, 150);
 	padding-left: 5px;
 	padding-top: 2px;
 	padding-bottom: 2px;
@@ -72,7 +72,8 @@
 
 #LinkFrame > QComboBox::down-arrow
 {
-	border: 1px solid white;
+	border: 1px solid rgb(130, 130, 130);
+	background-color: rgb(50, 50, 50);
 	border-radius: 6px;
 	color: white;
 }
@@ -244,6 +245,7 @@ QListWidget::item
 #ProcessWidgetFrame > #processName
 {
 	background-color: transparent;
+	color: rgb(150, 150, 150);
 }
 
 #ProcessWidgetFrame:hover
@@ -259,23 +261,35 @@ QListWidget::item
 
 #ProcessWidgetFrame > #closeProcess
 {
-	min-width: 16px;
-	min-height: 16px;
+	width: 16px;
+	height: 16px;
 	background-color: transparent;
-	font-size: 12pt;
+	font-size: 10pt;
+	color: rgb(130, 130, 130);
+	qproperty-text: '✕';
+}
+
+#ProcessWidgetFrame > #closeProcess:hover
+{
+	color: rgb(30, 30, 30);
 	qproperty-text: '卐';
-	color: lightblue;
 }
 
 #ProcessWidgetFrame > #attachDebugger
 {
-	min-width: 16px;
-	min-height: 16px;
+	width: 16px;
+	height: 16px;
 	background-color: transparent;
-	font-size: 12pt;
+	font-size: 10pt;
+	qproperty-text: '♻';
+	/* margin-right: 4px; */
+	color: rgb(130, 130, 130);
+}
+
+#ProcessWidgetFrame > #attachDebugger:hover
+{
+	color: rgb(30, 30, 30);
 	qproperty-text: '☭';
-	margin-right: 4px;
-	color: red;
 }
 
 #ProcessWidget > #ProcessWidgetFrame > #closeProcess:hover
@@ -419,15 +433,15 @@ QScrollBar::add-line {
 	background-color: transparent;
 }
 
-/* #ClusterWidget[state="0"] > #ctlFrame */
-/* { */
-	/* background-color: rgb(130, 130, 130); */
-/* } */
+#ClusterWidget[state="0"] > #ctlFrame
+{
+	background-color: rgba(130, 30, 30, 0.1);
+}
 
-/* #ClusterWidget[state="1"] > #ctlFrame */
-/* { */
-	/* background-color: rgba(30, 130, 30, 0.1); */
-/* } */
+#ClusterWidget[state="1"] > #ctlFrame
+{
+	background-color: rgba(30, 130, 30, 0.1);
+}
 
 #ClusterWidget[state="2"] > #ctlFrame
 {
@@ -436,7 +450,7 @@ QScrollBar::add-line {
 
 #ClusterWidget[state="3"] > #ctlFrame
 {
-	background-color: rgba(30, 130, 30, 0.1);
+	background-color: rgba(30, 30, 130, 0.1);
 }
 
 #ClusterWidget > #path
@@ -446,48 +460,59 @@ QScrollBar::add-line {
 	padding-left: 2px;
 }
 
+#ClusterWidget > #ctlFrame > #serviceName
+{
+	background-color: transparent;
+	color: rgb(130, 130, 130);
+	font-size: 8pt;
+	padding-left: 2px;
+	padding-right: 4px;
+}
+
 #ClusterWidget > #ctlFrame > #ctl
 {
 	background-color: transparent;
 	height: 14px;
 	width: 14px;
+	color: rgb(130, 130, 130);
 }
 
 #ClusterWidget > #ctlFrame > #ctl:hover
 {
 	background-color: rgb(130, 130, 130);
+	color: rgb(30, 30, 30);
 }
 
-#ClusterWidget[state="0"] > #ctlFrame > #ctl
-{
-	padding-bottom: 2px;
-	padding-left: 1px;
-	color: #B22222;
-	qproperty-text: "⏹";
-}
-
-#ClusterWidget[state="1"] > #ctlFrame > #ctl
+#ClusterWidget[state="0"] > #ctlFrame > #ctl /* cluster offline */
 {
 	padding-bottom: 3px;
-	color: #556B2F;
+	/* color: #556B2F; */
 	font-size: 12pt;
 	qproperty-text: "⏵";
 }
 
-#ClusterWidget[state="2"] > #ctlFrame > #ctl /* service stopped */
+#ClusterWidget[state="1"] > #ctlFrame > #ctl /* cluster online */
 {
 	padding-bottom: 2px;
 	padding-left: 1px;
-	color: #B22222;
+	/* color: #B22222; */
 	qproperty-text: "⏹";
 }
 
-#ClusterWidget[state="3"] > #ctlFrame > #ctl /* service started */
+#ClusterWidget[state="2"] > #ctlFrame > #ctl /* service offline */
 {
 	padding-bottom: 3px;
-	color: #556B2F;
+	/* color: #556B2F; */
 	font-size: 12pt;
 	qproperty-text: "⏵";
+}
+
+#ClusterWidget[state="3"] > #ctlFrame > #ctl /* service online */
+{
+	padding-bottom: 2px;
+	padding-left: 1px;
+	/* color: #B22222; */
+	qproperty-text: "⏹";
 }
 
 #ClusterWidget > #ctlFrame > #port

@@ -2,7 +2,9 @@
 #include "settings.h"
 #include "pg_conf.h"
 #include "pg_version.h"
-#include "wmiservice.h"
+#include "src/tooling.h"
+#include "wmi_process.h"
+
 #include "ui_postgresframe.h"
 #include "ui_postgreswidget.h"
 #include "ui_postgresnotfound.h"
@@ -101,7 +103,31 @@ ClusterWidget::ClusterWidget(const pg::PGVersion& v, const pg::PGCluster& c, QWi
 	m_ui->port->setValidator(new QRegularExpressionValidator{
 		QRegularExpression{ "^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$" } });
 
+	QObject::connect(m_ui->ctl, &QPushButton::clicked,
+		this, &ClusterWidget::clusterCtlPressed);
 	updateState();
+	QStringList pathStack{ m_cluster.pathJunction() };
+	if (pathStack.front() != m_cluster.path())
+	{
+		while (true)
+		{
+			try
+			{
+				tool::symlink sym{ pathStack.back() };
+				pathStack.push_back(sym.mountPoint());
+			}
+			catch (const std::exception&)
+			{
+				break;
+			}
+		}
+	}
+	m_ui->path->setText(pathStack.join(" -> "));
+	pathStack.push_front(m_cluster.path());
+	m_ui->path->setToolTip(pathStack.join(" -> "));
+
+	// todo: known issue, sometimes values comes with spaces on beginning of value
+	m_ui->port->setText(m_cluster.configuration()->get("port").value.trimmed());
 }
 
 int ClusterWidget::getState() const
@@ -128,10 +154,7 @@ int ClusterWidget::getState() const
 void ClusterWidget::updateState()
 {
 	m_cluster.updateDatabaseState();
-	m_ui->path->setText(m_cluster.pathJunction());
-
-	// todo: known issue, sometimes values comes with spaces on beginning of value
-	m_ui->port->setText(m_cluster.configuration()->get("port").value.trimmed());
+	this->setStyleSheet(QString{});
 }
 
 void ClusterWidget::serviceDiscovered(const pg::PGVersion& v, const pg::PGCluster& c, pWmiService s)
@@ -139,8 +162,70 @@ void ClusterWidget::serviceDiscovered(const pg::PGVersion& v, const pg::PGCluste
 	if (v != m_version || c != m_cluster)
 		return;
 	m_service = s;
+	m_ui->serviceName->setText(m_service->name());
 	this->setStyleSheet(QString{});
-	qDebug() << "service discovered";
+}
+
+void ClusterWidget::clusterCtlPressed()
+{
+	if (m_service)
+		return toggleService();
+	WmiProcessStartupInfo si;
+	si.showWindow = WmiProcessStartupInfo::SW_NORMAL;
+	if (Settings::setup()->get("pg_hide_ctl_cmd", QVariant{ true }).toBool())
+		si.showWindow = WmiProcessStartupInfo::SW_HIDE;
+	QStringList args;
+	args
+		<< QString{ "%1%2" }.arg(m_version.binaryPath()).arg("pg_ctl.exe")
+		// << QString{ "-l e:\\pg_ctl.%1.log" }.arg(m_version.version())
+		<< "-D" << QString{ "\"%1\"" }.arg(m_cluster.path());
+	if (m_cluster.running())
+		args << "-m fast stop";
+	else
+		args
+			<< "-o" << QString{ "\"-p %1 --lc_messages=en_us.utf8\"" }.arg(m_ui->port->text().toInt())
+			<< "start";
+	si.title = QString{ "PosgreSQL v%1 %2" }.arg(m_version.version()).arg(args.join(" "));
+	const QString bin =
+		// QString{ "cmd.exe @cmd /k \"chcp 1251 & %1\" & exit" }
+		QString{ "cmd.exe @cmd /k \"%1\" & exit" }
+			.arg(args.join(" ").replace("/", "\\"));
+	const QString path = m_version.binaryPath().replace("/", "\\");
+	if (WmiProcess::create(bin, path, &si) <= 0)
+		throw std::runtime_error{ "cannot execute pg_ctl command" };
+}
+
+void ClusterWidget::toggleService()
+{
+	try
+	{
+		switch (m_service->state())
+		{
+		case WmiService::Stopped:
+			m_service->start();
+			break;
+		case WmiService::Running:
+			m_service->stop();
+			break;
+		case WmiService::Paused:
+			m_service->resume();
+			break;
+		case WmiService::Unknown:
+		case WmiService::StartPending:
+		case WmiService::StopPending:
+		case WmiService::ContinuePending:
+		case WmiService::PausePending:
+			throw std::runtime_error("invalid service toggling state");
+		}
+	}
+	catch (const std::exception& e)
+	{
+		qDebug() << "toggle " << e.what();
+	}
+	catch (...)
+	{
+		qDebug() << "unknown exception!";
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +263,9 @@ void PostgresWidget::addClusters(const pg::PGVersion& ver, const pg::PGCluster::
 		QObject::connect(
 			m_parent->directoriesEnumerator(), &DirectoriesEnumerator::serviceDiscovered,
 			cw, &ClusterWidget::serviceDiscovered);
+		QObject::connect(
+			m_parent, &PostgresManager::updateStates,
+			cw, &ClusterWidget::updateState);
 		m_clusters.push_back(cw);
 		layout->addWidget(cw);
 	}
@@ -188,6 +276,7 @@ void PostgresWidget::addClusters(const pg::PGVersion& ver, const pg::PGCluster::
 PostgresManager::PostgresManager(QWidget* parent)
 	: QFrame{ parent }
 	, m_ui{ new Ui::PostgresFrame }
+	, m_updateTimer{ new QTimer{ this } }
 	, m_enumerator{ new DirectoriesEnumerator }
 {
 	m_ui->setupUi(this);
@@ -204,10 +293,19 @@ PostgresManager::PostgresManager(QWidget* parent)
 	QObject::connect(m_enumerator, &DirectoriesEnumerator::versionsEnumerated,
 		this, &PostgresManager::versionsEnumerated);
 	QThreadPool::globalInstance()->start(m_enumerator);
+
+	m_updateTimer->setInterval(1000);
+	QObject::connect(
+		m_updateTimer, &QTimer::timeout,
+		this, [&]() {
+			emit updateStates();
+		});
+	m_updateTimer->start();
 }
 
 PostgresManager::~PostgresManager()
 {
+	m_updateTimer->stop();
 }
 
 DirectoriesEnumerator* PostgresManager::directoriesEnumerator() const

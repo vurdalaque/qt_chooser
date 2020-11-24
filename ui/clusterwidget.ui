@@ -74,6 +74,13 @@
        </spacer>
       </item>
       <item>
+       <widget class="QLabel" name="serviceName">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLineEdit" name="port"/>
       </item>
       <item>

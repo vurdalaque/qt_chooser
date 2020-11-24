@@ -1,6 +1,6 @@
 #include "mainwidget.h"
-#include "src/wmi.h"
-#include "wmiservice.h"
+#include "wmi_process.h"
+#include "wmi_service.h"
 #include "pg_version.h"
 
 #include <QApplication>
@@ -8,8 +8,10 @@
 #include <QTextCodec>
 #include <QDebug>
 
+#include <chrono>
 #include <exception>
 #include <functional>
+#include <thread>
 #include <windows.h>
 
 class MyApplication : public QApplication
@@ -39,6 +41,7 @@ public:
 int main(int argc, char** argv)
 {
 	qRegisterMetaType<tool::WmiObject>();
+	qRegisterMetaType<WmiProcess>();
 	qRegisterMetaType<pWmiService>();
 	qRegisterMetaType<pg::PGVersion>();
 	qRegisterMetaType<pg::PGCluster>();

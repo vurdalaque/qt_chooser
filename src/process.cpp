@@ -13,74 +13,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-WmiProcess::WmiProcess(const tool::WmiObject& o)
-	: tool::WmiObject(o)
-{}
-
-WmiProcess::~WmiProcess()
-{}
-
-int WmiProcess::processID() const
-{
-	return property("ProcessId").toInt();
-}
-
-QString WmiProcess::processName() const
-{
-	return property("Name").toString();
-}
-
-QString WmiProcess::executablePath() const
-{
-	// can be used to extract icon
-	return property("ExecutablePath").toString();
-}
-
-bool WmiProcess::isTerminated() const
-{
-	int state = property("ExecutionState").toInt();
-	qDebug() << processName() << state;
-	return (state == 7 || state == 8);
-}
-
-int WmiProcess::kill()
-{
-	updateObject();
-	int retval = -1, mi = 0, param = 0;
-	const QMetaObject* o = metaObject();
-	if (o == nullptr)
-		throw std::runtime_error("no meta object!");
-	mi = o->indexOfMethod("Terminate(uint)");
-	if (mi < 0)
-		throw std::runtime_error("service method not found!");
-	QMetaMethod method = o->method(mi);
-	if (!method.invoke(static_cast<tool::WmiObject*>(this),
-			Qt::DirectConnection,
-			Q_RETURN_ARG(int, retval), Q_ARG(int, param)))
-		throw std::runtime_error("method call failed");
-	return retval;
-}
-
-int WmiProcess::attachDebugger()
-{
-	updateObject();
-	int retval = -1, mi = 0;
-	const QMetaObject* o = metaObject();
-	if (o == nullptr)
-		throw std::runtime_error("no meta object!");
-	mi = o->indexOfMethod("AttachDebugger()");
-	if (mi < 0)
-		throw std::runtime_error("service method not found!");
-	QMetaMethod method = o->method(mi);
-	if (!method.invoke(static_cast<tool::WmiObject*>(this),
-			Qt::DirectConnection,
-			Q_RETURN_ARG(int, retval)))
-		throw std::runtime_error("method call failed");
-	return retval;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 ProcessWidget::ProcessWidget(QWidget* parent)
 	: QWidget(parent)
 	, m_ui(new Ui::ProcessWidget)
@@ -154,8 +86,8 @@ ProcessManager::ProcessManager(Settings* s, QWidget* parent)
 		m_watchableProcess.push_back(v.toString());
 
 	QObject::connect(this,
-		SIGNAL(watchableProcess(int, const QString&, const QString&)),
-		SLOT(onWatchableProcess(int, const QString&, const QString&)),
+		SIGNAL(watchableProcess(const WmiProcess&)),
+		SLOT(onWatchableProcess(const WmiProcess&)),
 		Qt::QueuedConnection);
 
 	QObject::connect(this,
@@ -175,18 +107,23 @@ ProcessManager::~ProcessManager()
 		m_thread.join();
 }
 
-void ProcessManager::onWatchableProcess(int id, const QString& name, const QString& exe)
+void ProcessManager::onWatchableProcess(const WmiProcess& p)
 {
 	auto* item = new QListWidgetItem(m_ui->proclist);
 	auto* widget = new ProcessWidget(this);
-	item->setData(Qt::UserRole, id);
-	widget->setProcessName(name);
-	widget->setExecutablePath(exe);
-	widget->setProcessID(id);
+	item->setData(Qt::UserRole, p.processID());
+	widget->setProcessName(p.processName());
+	widget->setExecutablePath(p.executablePath());
+	widget->setProcessID(p.processID());
 	QObject::connect(widget, SIGNAL(killProcess(int)), this, SLOT(onKillProcess(int)));
 	QObject::connect(widget, SIGNAL(attachDebugger(int)), this, SLOT(onAttachDebugger(int)));
 	QObject::connect(this, SIGNAL(memoryChanged(int, int)),
 		widget, SLOT(onMemoryChanged(int, int)));
+
+	widget->setToolTip(
+		QString{ "%1\n%2" }
+			.arg(p.executablePath())
+			.arg(p.commandLine()));
 
 	m_ui->proclist->setItemWidget(item, widget);
 }
@@ -211,7 +148,7 @@ void ProcessManager::onKillProcess(int id)
 	auto it = m_watchable.find(id);
 	if (it == m_watchable.end())
 		return;
-	it->second.kill();
+	it->second.terminate();
 }
 
 void ProcessManager::onAttachDebugger(int id)
@@ -247,10 +184,7 @@ void ProcessManager::monitorWatchableCreate()
 			{
 				m_watchable.insert({ procID, proc });
 				repeatedIds.insert(procID);
-				emit watchableProcess(
-					procID,
-					proc.processName(),
-					proc.executablePath());
+				emit watchableProcess(proc);
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 #pragma once
-#include "wmi.h"
+#include "wmi_process.h"
 #include <mutex>
 #include <thread>
 
@@ -12,22 +12,6 @@ namespace Ui
 	class ProcessWidget;
 
 } /* namespace Ui */
-
-////////////////////////////////////////////////////////////////////////////////
-
-class WmiProcess : public tool::WmiObject
-{
-public:
-	WmiProcess(const tool::WmiObject&);
-	~WmiProcess();
-
-	int processID() const;
-	QString processName() const;
-	QString executablePath() const;
-	bool isTerminated() const;
-	int kill();
-	int attachDebugger();
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -69,12 +53,12 @@ public:
 	~ProcessManager();
 
 signals:
-	void watchableProcess(int, const QString&, const QString&);
+	void watchableProcess(const WmiProcess&);
 	void diedProcess(int);
 	void memoryChanged(int, int);
 
 protected slots:
-	void onWatchableProcess(int, const QString&, const QString&);
+	void onWatchableProcess(const WmiProcess&);
 	void onProcessDied(int);
 	void onKillProcess(int);
 	void onAttachDebugger(int);
