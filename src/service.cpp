@@ -13,13 +13,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-ServiceManager::ServiceManager(const QString& sn, const QString& sh, QWidget* parent)
+ServiceManager::ServiceManager(const QString& sn, QWidget* parent)
 	: QFrame(parent)
-	, m_serviceName(sn)
+	, m_serviceName{ sn }
 	, m_ui(new Ui::MainServiceFrame)
 {
 	m_ui->setupUi(this);
-	m_ui->label->setText(sh);
+	// m_ui->label->setText(sh);
 	QObject::connect(this, SIGNAL(stateChanged(int)),
 		SLOT(onStateChanged(int)), Qt::QueuedConnection);
 	QObject::connect(this, SIGNAL(tooltipChange(const QString&)),

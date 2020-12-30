@@ -51,7 +51,7 @@ namespace helper
 
 			do
 			{
-				const ushort* exeFile = (ushort*)pe32.szExeFile;
+				// const ushort* exeFile = (ushort*)pe32.szExeFile;
 				if (pe32.th32ProcessID == pid) // && QString::fromUtf16(exeFile) == "postgres.exe")
 				{
 					CloseHandle(hProcessSnap);

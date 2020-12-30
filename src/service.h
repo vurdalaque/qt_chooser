@@ -21,7 +21,7 @@ class ServiceManager
 	Q_OBJECT
 
 public:
-	ServiceManager(const QString& serviceName, const QString& shorthand, QWidget*);
+	ServiceManager(const QString& serviceName, QWidget*);
 	~ServiceManager();
 
 signals:

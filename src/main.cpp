@@ -64,13 +64,12 @@ int main(int argc, char** argv)
 	}
 	catch (const std::exception& e)
 	{
-		out << e.what() << endl;
+		out << "exception: " << e.what() << endl;
 	}
 	catch (...)
 	{
 		out << "unhandled exception" << endl;
 	}
-	qDebug() << "ok";
 	return -1;
 }
 

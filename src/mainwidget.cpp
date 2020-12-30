@@ -112,7 +112,7 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 
 	QJsonObject& param = setup->params();
 	if (!param.contains("mountPoint"))
-		param.insert("mountPoint", "c:/qt/");
+		param.insert("mountPoint", "c:/qt/qtbase");
 	m_mountPoint = param.value("mountPoint").toString();
 	if (m_qtdir.isEmpty())
 	{
@@ -159,6 +159,7 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 
 	QObject::connect(m_ui->currentVersion, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(changeVersion(int)));
+	qDebug() << errorText;
 }
 
 SymlinkinQtWidget::~SymlinkinQtWidget()
@@ -171,6 +172,7 @@ void SymlinkinQtWidget::initDirs()
 	m_ui->qtPath->setText(m_qtdir);
 
 	int idx = 0;
+	qDebug() << "initDirs";
 	for (const auto& dir : QDir{ extsdkQtPath() }.entryList())
 	{
 		if (dir != QString{ "." } && dir != QString{ ".." })
@@ -183,20 +185,23 @@ void SymlinkinQtWidget::initDirs()
 		changeVersion(0);
 	try
 	{
+		qDebug() << m_mountPoint;
 		tool::symlink qtdir{ m_mountPoint };
 		const QString currentVersion = qtdir.mountPoint().split('/').back();
 		for (int i = 0; i != m_ui->currentVersion->count(); ++i)
 			if (m_ui->currentVersion->itemText(i) == currentVersion)
 				m_ui->currentVersion->setCurrentIndex(i);
+		m_ui->qtPath->setVisible(false);
 	}
 	catch (const std::exception& e)
 	{
-		this->setToolTip(QString{ "Error occured: %1" }.arg(e.what()));
+		const QString errorMessage = QString{ "Error occured: %1" }.arg(e.what());
+		this->setToolTip(errorMessage);
+		m_ui->qtPath->setText(errorMessage);
 		this->setEnabled(false);
-		m_ui->qtPath->clear();
 		m_ui->currentVersion->clear();
+		m_ui->qtPath->setVisible(true);
 	}
-	m_ui->qtPath->setVisible(false);
 }
 
 QString SymlinkinQtWidget::extsdkQtPath() const
@@ -282,15 +287,10 @@ void DesktopWidget::init()
 
 	for (const auto& value : param.value("services").toArray())
 	{
-		if (!value.isObject())
+		if (!value.isString())
 			throw std::runtime_error("service must be object");
-		const QJsonObject service = value.toObject();
-		if (!service.contains("name"))
-			throw std::runtime_error("no service name specified");
-		const QString
-			serviceName = service.value("name").toString(),
-			shorthand = (service.contains("shorthand") ? service.value("shorthand").toString() : serviceName.mid(0, 1));
-		h->addWidget(new ServiceManager{ serviceName, shorthand, this });
+		const QString serviceName = value.toString();
+		h->addWidget(new ServiceManager{ serviceName, this });
 	}
 	h->addSpacerItem(new QSpacerItem{ 0, 0, QSizePolicy::Expanding, QSizePolicy::Maximum });
 	h->addWidget(new SymlinkinQtWidget{ m_setup, this });

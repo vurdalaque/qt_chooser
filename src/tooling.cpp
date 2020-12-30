@@ -63,8 +63,9 @@ namespace tool
 		char* buffer = new char[buffer_size];
 		DWORD bytesread = 0;
 
-		if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, buffer,
-				buffer_size, &bytesread, nullptr))
+		if (DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, buffer,
+				buffer_size, &bytesread, nullptr)
+			== 0)
 		{
 			delete[] buffer, buffer = nullptr;
 			throw std::runtime_error("DeviceIoControl");
