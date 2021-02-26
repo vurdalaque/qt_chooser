@@ -112,7 +112,7 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 
 	QJsonObject& param = setup->params();
 	if (!param.contains("mountPoint"))
-		param.insert("mountPoint", "c:/qt/qtbase");
+		param.insert("mountPoint", "c:/qt");
 	m_mountPoint = param.value("mountPoint").toString();
 	if (m_qtdir.isEmpty())
 	{
@@ -159,7 +159,8 @@ SymlinkinQtWidget::SymlinkinQtWidget(Settings* setup, QWidget* parent)
 
 	QObject::connect(m_ui->currentVersion, SIGNAL(currentIndexChanged(int)),
 		this, SLOT(changeVersion(int)));
-	qDebug() << errorText;
+	if (!errorText.isEmpty())
+		qWarning() << "error text: " << errorText;
 }
 
 SymlinkinQtWidget::~SymlinkinQtWidget()
@@ -177,6 +178,7 @@ void SymlinkinQtWidget::initDirs()
 	{
 		if (dir != QString{ "." } && dir != QString{ ".." })
 		{
+			qDebug() << "add version: " << dir;
 			m_ui->currentVersion->insertItem(idx, dir);
 			++idx;
 		}
@@ -185,7 +187,7 @@ void SymlinkinQtWidget::initDirs()
 		changeVersion(0);
 	try
 	{
-		qDebug() << m_mountPoint;
+		qInfo() << "mount point: " << m_mountPoint;
 		tool::symlink qtdir{ m_mountPoint };
 		const QString currentVersion = qtdir.mountPoint().split('/').back();
 		for (int i = 0; i != m_ui->currentVersion->count(); ++i)
@@ -215,6 +217,7 @@ void SymlinkinQtWidget::changeVersion(int idx)
 						 .arg(m_extsdk)
 						 .arg(m_ui->currentVersion->itemText(idx));
 
+	qInfo() << "switching versions: " << nupath << " to " << m_mountPoint;
 	tool::symlink l{ m_mountPoint };
 	l.unlink();
 	l.link(nupath);

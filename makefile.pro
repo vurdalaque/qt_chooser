@@ -34,9 +34,9 @@ MOC_DIR = $$DESTDIR/.moc
 RCC_DIR = $$DESTDIR/.qrc
 UI_DIR = $$DESTDIR/.u
 
-win32: QMAKE_CXXFLAGS_RELEASE -= -Zc:strictStrings 
-win32: QMAKE_CFLAGS_RELEASE -= -Zc:strictStrings 
-win32: QMAKE_CFLAGS -= -Zc:strictStrings 
-win32: QMAKE_CXXFLAGS -= -Zc:strictStrings 
+win32: QMAKE_CXXFLAGS_RELEASE -= -Zc:strictStrings
+win32: QMAKE_CFLAGS_RELEASE -= -Zc:strictStrings
+win32: QMAKE_CFLAGS -= -Zc:strictStrings
+win32: QMAKE_CXXFLAGS -= -Zc:strictStrings
 QMAKE_CXXFLAGS_RELEASE += /std:c++17
 

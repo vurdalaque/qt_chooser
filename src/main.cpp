@@ -1,4 +1,5 @@
 #include "mainwidget.h"
+#include "settings.h"
 #include "wmi_process.h"
 #include "wmi_service.h"
 #include "pg_version.h"
@@ -14,30 +15,6 @@
 #include <thread>
 #include <windows.h>
 
-class MyApplication : public QApplication
-{
-public:
-	MyApplication(int argc, char** argv)
-		: QApplication{ argc, argv } {}
-
-	virtual bool notify(QObject* receiver, QEvent* e) override
-	{
-		try
-		{
-			return QApplication::notify(receiver, e);
-		}
-		catch (const std::exception& e)
-		{
-			qDebug() << "exception: " << e.what();
-		}
-		catch (...)
-		{
-			qDebug() << "unhandled";
-		}
-		return false;
-	}
-};
-
 int main(int argc, char** argv)
 {
 	qRegisterMetaType<tool::WmiObject>();
@@ -48,8 +25,8 @@ int main(int argc, char** argv)
 	qRegisterMetaType<pg::PGVersion::List>();
 	qRegisterMetaType<pg::PGCluster::List>();
 	QTextStream out{ stdout };
-	MyApplication app(argc, argv);
-	out << "starting " << qApp->applicationName() << endl;
+	QApplication app(argc, argv);
+	Settings::setup();
 	try
 	{
 		QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF8"));
@@ -58,6 +35,7 @@ int main(int argc, char** argv)
 		::OleUninitialize();
 		tool::CoInitialize com;
 
+		qDebug() << "hello world!";
 		DesktopWidget w;
 		w.show();
 		return app.exec();

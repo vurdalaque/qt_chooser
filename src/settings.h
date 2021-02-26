@@ -21,6 +21,7 @@ public:
 	~Settings();
 
 	Q_INVOKABLE QString configPath() const;
+	Q_INVOKABLE QString logPath() const;
 	Q_INVOKABLE QJsonObject& params();
 	Q_INVOKABLE QVariant get(const QString&, const QVariant& = QVariant{});
 	Q_INVOKABLE void set(const QString&, const QVariant&);

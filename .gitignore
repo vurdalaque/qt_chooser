@@ -1,4 +1,5 @@
 *.clangd
+.cache
 *.ycm_extra_conf.py
 *.stash
 *.pdb
