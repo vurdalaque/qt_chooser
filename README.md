@@ -20,6 +20,9 @@ After first run, will be created configuration file
 * enableProcManager : true/false. Not fully implemented process manager
 * process : list of processes that will be monitored
 
+#### notes
+* "set QT_QPA_PLATFORM_PLUGIN_PATH=C:/qt/qtbase/plugins/platforms"
+
 ### Known issues
 + extsdk directory path must be started with capital disk letter
 	(odd Qt's bug: QML plugin loader fails with path like "d:/qt/qml")
