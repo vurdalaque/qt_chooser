@@ -6,4 +6,5 @@
 *.bat
 *.json
 build
+.build
 Makefile
